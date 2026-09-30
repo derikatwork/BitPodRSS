@@ -27,6 +27,15 @@ Your subscriptions, reading state and playback progress live in your own browser
 
 ## Installation and setup walkthrough
 
+**Debian / Ubuntu shortcut:** steps 1–2 below are automated by `scripts/install.sh`. It installs only what's missing (git, curl, ffmpeg), installs Node 22 via nvm if your Node is absent or too old, then runs `npm install` and the build. Options: `--no-ffmpeg`, `--dir PATH`, `--no-build`.
+
+```bash
+git clone https://github.com/derikatwork/BitPodRSS.git && cd BitPodRSS && ./scripts/install.sh
+npm run serve
+```
+
+Then continue from step 3. The manual steps follow if you prefer them or aren't on Debian.
+
 ### 1. Install the prerequisites
 
 You need **Node.js 22.19 or newer**, **git**, and a modern browser (Chrome, Edge, Firefox or Safari). **ffmpeg** is optional (only for local transcription).
