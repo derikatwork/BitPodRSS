@@ -25,47 +25,75 @@ Your subscriptions, reading state and playback progress live in your own browser
 - **Price visual**: current price plus **1 week, 1 month, 1 year and year-to-date** change, with an interactive chart (hover or arrow keys), light and dark themes, and a table view of the same data. USD, EUR, GBP, CAD, AUD, CHF, JPY.
 - **Nostr identity (optional)**: connect a NIP-07 signer or paste an npub. It is used for boosts and for sharing an episode as a note. Nothing requires it.
 
-## Quick start
+## Installation and setup walkthrough
 
-Requires **Node 22.19+**.
+### 1. Install the prerequisites
 
-### Debian / Ubuntu
+You need **Node.js 22.19 or newer**, **git**, and a modern browser (Chrome, Edge, Firefox or Safari). **ffmpeg** is optional (only for local transcription).
 
-Debian's packaged `nodejs` is too old (18 on bookworm), so install Node 22 with [nvm](https://github.com/nvm-sh/nvm) or NodeSource, then:
+**Debian / Ubuntu** (Debian's packaged `nodejs` is too old, 18 on bookworm, so use nvm or NodeSource):
 
 ```bash
-sudo apt install ffmpeg          # only needed for local transcription
-nvm install 22                   # or: NodeSource's setup_22.x + apt install nodejs
-git clone https://github.com/derikatwork/BitPodRSS.git && cd BitPodRSS
-npm install && npm run serve
+sudo apt update && sudo apt install -y git curl ffmpeg
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+# open a new terminal, then:
+nvm install 22
+node --version        # must print v22.19 or higher
 ```
 
-Read-aloud uses your browser's voices. Chrome on Linux often ships with none or only robotic ones; Firefox uses `speech-dispatcher` (`sudo apt install speech-dispatcher espeak-ng`, still robotic), and Edge on Linux offers its natural "Online" voices. To run the e2e suite, fetch a browser once with `npx playwright-core install chromium --with-deps` (or set `CHROMIUM_PATH`).
+**macOS:** `brew install node git ffmpeg`. **Windows:** install Node 22 from nodejs.org and ffmpeg from ffmpeg.org (or use WSL with the Debian steps).
+
+### 2. Get the code and start it
 
 ```bash
+git clone https://github.com/derikatwork/BitPodRSS.git
+cd BitPodRSS
 npm install
-npm run serve          # builds the app and serves everything on http://localhost:8787
+npm run serve          # builds the app, then serves it
 ```
 
-For development with hot reload (API on :8787, UI on :5173):
+Open **http://localhost:8787**. Leave the terminal running; press `Ctrl+C` to stop. Next time, `npm run serve` is all you need. For development with hot reload use `npm run dev` (UI on :5173, API on :8787).
 
-```bash
-npm run dev
-```
+### 3. Add your subscriptions
 
-### Optional: local transcription
+- **Reader** → **+** → paste a feed address or just a website address (the feed is found automatically). Or use the upload icon to **import an OPML** file exported from another reader.
+- **Podcasts** → **+** → paste the podcast's RSS feed URL (or import OPML; podcasts and articles are sorted automatically).
+- Organise as you go: drag feeds onto **Categories** in the Reader, and podcasts onto **Groups**. Use the **Queue** button on any episode to build an *Up next* list.
 
-Transcription runs on the machine that runs the server and needs two things:
+### 4. Try read-aloud
 
-1. **ffmpeg** on your `PATH` (`brew install ffmpeg`, `sudo apt install ffmpeg`, …) or set `FFMPEG_PATH`.
-2. The optional package **`@huggingface/transformers`**, installed by `npm install` as an *optional dependency* (the project's `.npmrc` skips the GPU-only downloads that otherwise fail on restricted networks; the CPU runtime is bundled). If it isn't installed the rest of the app works normally.
+Open an article and press **Listen**. In **Settings → Read aloud** pick a voice (*Preview* lets you hear it) and tick *Prefer on-device voices* if you don't want text sent to a browser vendor's cloud. Natural/Neural/Enhanced voices sound best; on Linux you may need Edge or extra voices (see Known limitations).
 
-The Whisper model (40–250 MB depending on the size you pick) is downloaded once on first use into `./data/models`, after which transcription works offline. The app tells you in **Settings → Local transcription** whether both pieces are available. Everything else works without them.
+### 5. Connect a Lightning wallet (optional)
 
-### Connecting Alby
+Go to **Bitcoin → Lightning wallet** and pick one:
 
-- **Extension**: install the [Alby extension](https://getalby.com), then *Bitcoin → Connect Alby extension*.
-- **Nostr Wallet Connect**: in Alby Hub open *Connections → Add connection*, allow **pay invoices**, **pay keysend** (needed for podcast payments) and **read balance**, **set a monthly budget**, then paste the `nostr+walletconnect://…` string in *Bitcoin → Nostr Wallet Connect*.
+- **Alby extension:** install the [Alby extension](https://getalby.com), create or import your wallet in it, reload BitPodRSS, then press **Connect Alby extension** and approve the prompt.
+- **Nostr Wallet Connect** (Alby Hub or an Alby account): in Alby Hub open *Connections → Add connection*, allow **pay invoices**, **pay keysend** (podcast payments need this) and **read balance**, and **set a monthly budget**. Copy the `nostr+walletconnect://…` string, paste it into *Nostr Wallet Connect* and press **Connect**.
+
+Your balance appears once connected. To support a show, open an episode and press **Boost**. To pay automatically while you listen, turn on **Stream sats while I listen** on the same page; it explains exactly what it will spend and is capped per day. See *Payments and safety* below.
+
+### 6. Turn on local transcription (optional)
+
+Install **ffmpeg** (step 1) and restart the server, then check **Settings → Local transcription**: both *ffmpeg found* and *Speech engine ready* should show green. On an episode's **Transcript** tab press **Transcribe**; the Whisper model (40–250 MB) downloads on the first run, then it works offline. You can leave the page while it runs. If *Speech engine unavailable* shows, run `npm install @huggingface/transformers` and restart.
+
+### 7. Connect a Nostr identity (optional)
+
+**Settings → Nostr identity**: connect with a NIP-07 extension (Alby works) or paste your **npub**. Your name is then attached to boosts and you can share episodes as notes. Skip it and everything still works.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `npm install` complains about the Node version | `node --version` must be ≥ 22.19 (see step 1) |
+| "Could not reach the BitPodRSS server" | The terminal running `npm run serve` was closed; start it again |
+| Adding a feed says "private or reserved address" | The feed is on your LAN. Start with `ALLOW_PRIVATE_NETWORK=1 npm run serve` |
+| Page says the Host is not allowed | You opened it by a name other than `localhost`; set `ALLOWED_HOSTS=yourname` |
+| "ffmpeg not found" / "Speech engine unavailable" | Step 6 |
+| Transcription fails downloading the model | The server needs internet access to huggingface.co once |
+| Alby extension "not detected" | Reload the page after installing the extension |
+| No or robotic read-aloud voices | Browser/OS limitation; try Edge or install better voices |
+| Lost subscriptions after clearing browser data | Data lives in the browser; export OPML regularly |
 
 ## Payments and safety
 
@@ -110,7 +138,7 @@ npm run e2e         # builds, then drives the real app in Chromium against fixtu
 npm run check       # typecheck + tests + build
 ```
 
-The end-to-end suite (`e2e/`) starts fixture feed servers, including duplicate stories, a Podcasting 2.0 show with a value block, a real playable WAV and a hostile feed, and exercises the whole UI with a fake Alby/Nostr extension. It **verifies, among other things, that one real minute of listening streams exactly one payment and that seeking streams none**. Set `CHROMIUM_PATH` if Playwright's browser isn't installed where it expects.
+The end-to-end suite (`e2e/`) starts fixture feed servers, including duplicate stories, a Podcasting 2.0 show with a value block, a real playable WAV and a hostile feed, and exercises the whole UI with a fake Alby/Nostr extension. It **verifies, among other things, that one real minute of listening streams exactly one payment and that seeking streams none**. Fetch a browser once with `npx playwright-core install chromium --with-deps` (Debian/Ubuntu), or set `CHROMIUM_PATH` to an existing Chrome/Chromium.
 
 ### Layout
 
