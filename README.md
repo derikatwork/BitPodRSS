@@ -27,7 +27,20 @@ Your subscriptions, reading state and playback progress live in your own browser
 
 ## Quick start
 
-Requires **Node 20.11+**.
+Requires **Node 22.19+**.
+
+### Debian / Ubuntu
+
+Debian's packaged `nodejs` is too old (18 on bookworm), so install Node 22 with [nvm](https://github.com/nvm-sh/nvm) or NodeSource, then:
+
+```bash
+sudo apt install ffmpeg          # only needed for local transcription
+nvm install 22                   # or: NodeSource's setup_22.x + apt install nodejs
+git clone https://github.com/derikatwork/BitPodRSS.git && cd BitPodRSS
+npm install && npm run serve
+```
+
+Read-aloud uses your browser's voices. Chrome on Linux often ships with none or only robotic ones; Firefox uses `speech-dispatcher` (`sudo apt install speech-dispatcher espeak-ng`, still robotic), and Edge on Linux offers its natural "Online" voices. To run the e2e suite, fetch a browser once with `npx playwright-core install chromium --with-deps` (or set `CHROMIUM_PATH`).
 
 ```bash
 npm install
