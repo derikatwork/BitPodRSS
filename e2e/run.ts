@@ -364,6 +364,24 @@ async function main(): Promise<void> {
     await page.screenshot({ path: path.join(shots, 'podcast-transcribe.png') });
   });
 
+  await step(page, 'audio focus: read-aloud pauses a playing podcast, and resuming the podcast stops the speech', async () => {
+    await nav('Podcasts');
+    await page.locator('.side-item', { hasText: 'Latest episodes' }).click();
+    await page.locator('.episode', { hasText: 'Episode 3' }).getByRole('button', { name: /^Play Episode 3/ }).click();
+    await playerRegion().getByRole('button', { name: 'Pause', exact: true }).waitFor();
+    await nav('Reader');
+    await page.getByRole('button', { name: 'All articles' }).click();
+    await page.locator('.article-item', { hasText: 'Local bakery' }).click();
+    await page.getByRole('button', { name: 'Listen' }).click();
+    await page.getByRole('region', { name: 'Read aloud' }).waitFor();
+    await playerRegion().getByRole('button', { name: 'Play', exact: true }).waitFor(); // the podcast was paused for the speech
+    await playerRegion().getByRole('button', { name: 'Play', exact: true }).click();
+    await playerRegion().getByRole('button', { name: 'Pause', exact: true }).waitFor();
+    await page.getByRole('region', { name: 'Read aloud' }).waitFor({ state: 'detached' }); // speech stopped for the podcast
+    await playerRegion().getByRole('button', { name: 'Pause', exact: true }).click();
+    await playerRegion().getByRole('button', { name: 'Close player' }).click();
+  });
+
   // ============================== Bitcoin ==============================
   console.log('\nBitcoin price');
   await step(page, 'shows the current price and 1W / 1M / 1Y / YTD changes', async () => {
