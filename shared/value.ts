@@ -82,20 +82,29 @@ export interface BoostagramInput {
   speed?: number;
 }
 
-/** Build the JSON carried in TLV record 7629169. Undefined fields are omitted. */
+/**
+ * Keysend custom records ride in the Lightning onion payload, which has roughly 1300 bytes for everything.
+ * Stay well inside that so long titles or messages cannot make an otherwise valid payment fail.
+ */
+export const MAX_BOOSTAGRAM_BYTES = 900;
+
+const clip = (s: string | undefined, max: number): string | undefined => (s && s.length > max ? `${s.slice(0, max - 1)}…` : s);
+const byteLength = (s: string): number => new TextEncoder().encode(s).length;
+
+/** Build the JSON carried in TLV record 7629169. Undefined fields are omitted; the result is size-bounded. */
 export function buildBoostagram(b: BoostagramInput): string {
   const payload: Record<string, unknown> = {
     action: b.action,
     app_name: b.appName,
     app_version: b.appVersion,
-    podcast: b.podcast,
-    url: b.feedUrl,
+    podcast: clip(b.podcast, 80),
+    url: clip(b.feedUrl, 160),
     guid: b.feedGuid,
-    episode: b.episode,
-    episode_guid: b.episodeGuid,
+    episode: clip(b.episode, 80),
+    episode_guid: clip(b.episodeGuid, 80),
     ts: b.ts != null ? Math.floor(b.ts) : undefined,
     name: b.recipientName,
-    sender_name: b.senderName,
+    sender_name: clip(b.senderName, 40),
     sender_id: b.senderNostrPubkey,
     message: b.message,
     value_msat: b.valueMsat,
@@ -103,7 +112,19 @@ export function buildBoostagram(b: BoostagramInput): string {
     speed: b.speed != null ? String(b.speed) : undefined,
   };
   for (const k of Object.keys(payload)) if (payload[k] === undefined || payload[k] === '') delete payload[k];
-  return JSON.stringify(payload);
+
+  // Still too big (mostly a long message)? Drop the least useful metadata first, then shorten the message.
+  let json = JSON.stringify(payload);
+  for (const optional of ['url', 'episode_guid', 'guid', 'app_version', 'speed', 'sender_id']) {
+    if (byteLength(json) <= MAX_BOOSTAGRAM_BYTES) break;
+    delete payload[optional];
+    json = JSON.stringify(payload);
+  }
+  while (byteLength(json) > MAX_BOOSTAGRAM_BYTES && typeof payload['message'] === 'string' && payload['message'].length > 1) {
+    payload['message'] = clip(payload['message'], Math.floor(payload['message'].length * 0.8));
+    json = JSON.stringify(payload);
+  }
+  return json;
 }
 
 /** TLV records for one keysend payment: boostagram (optional) plus the recipient's custom key/value. */

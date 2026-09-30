@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOOSTAGRAM_TLV, buildBoostagram, computeSplits, customRecordsFor, isPayableValue, satsFromSuggested, utf8ToHex } from './value';
+import { BOOSTAGRAM_TLV, MAX_BOOSTAGRAM_BYTES, buildBoostagram, computeSplits, customRecordsFor, isPayableValue, satsFromSuggested, utf8ToHex } from './value';
 import type { ValueRecipient } from './types';
 
 const r = (name: string, split: number, extra: Partial<ValueRecipient> = {}): ValueRecipient => ({
@@ -77,6 +77,36 @@ describe('boostagram', () => {
       buildBoostagram({ appName: 'BitPodRSS', action: 'boost', podcast: 'Show', episode: 'Ep 1', ts: 61.9, message: '', valueMsat: 5000, valueMsatTotal: 10000, senderName: 'Sam' }),
     );
     expect(json).toEqual({ action: 'boost', app_name: 'BitPodRSS', podcast: 'Show', episode: 'Ep 1', ts: 61, sender_name: 'Sam', value_msat: 5000, value_msat_total: 10000 });
+  });
+
+  it('stays within the onion payload budget even with huge titles, URLs and messages', () => {
+    const json = buildBoostagram({
+      appName: 'BitPodRSS',
+      appVersion: '0.1.0',
+      action: 'boost',
+      podcast: 'P'.repeat(400),
+      feedUrl: 'https://example.com/' + 'f'.repeat(600),
+      feedGuid: 'g'.repeat(36),
+      episode: 'E'.repeat(400),
+      episodeGuid: 'e'.repeat(300),
+      message: 'm'.repeat(2000),
+      senderName: 'S'.repeat(200),
+      senderNostrPubkey: 'a'.repeat(64),
+      valueMsat: 1000,
+      valueMsatTotal: 2000,
+    });
+    const bytes = new TextEncoder().encode(json).length;
+    expect(bytes).toBeLessThanOrEqual(MAX_BOOSTAGRAM_BYTES);
+    expect(bytes).toBeLessThan(1000); // anchored to the real limit (~1300 bytes of onion payload), not just our constant
+    const parsed = JSON.parse(json);
+    expect(parsed.action).toBe('boost'); // essentials survive
+    expect(parsed.value_msat).toBe(1000);
+    expect(parsed.message.length).toBeGreaterThan(50); // the user's message is shortened last, not dropped
+  });
+
+  it('does not alter small boostagrams, including multi-byte characters', () => {
+    const json = buildBoostagram({ appName: 'BitPodRSS', action: 'boost', podcast: 'Café ☕', message: 'Thanks ⚡🙏', valueMsat: 1, valueMsatTotal: 1, feedUrl: 'https://x.example/rss' });
+    expect(JSON.parse(json)).toMatchObject({ podcast: 'Café ☕', message: 'Thanks ⚡🙏', url: 'https://x.example/rss' });
   });
 
   it('builds TLV records with the boostagram and the recipient custom key', () => {

@@ -65,7 +65,7 @@ function guardedLookup(hostname: string, options: dns.LookupOptions, callback: L
     if (err) return callback(err, []);
     const list = (addresses as dns.LookupAddress[]).filter((a) => !isBlockedAddress(a.address));
     if (list.length === 0) {
-      return callback(new HttpError(403, `Refusing to connect to a private or reserved address (${hostname})`), []);
+      return callback(new HttpError(403, `Refusing to connect to a private or reserved address (${hostname}). Set ALLOW_PRIVATE_NETWORK=1 to allow feeds on your own network.`), []);
     }
     if (options.all) callback(null, list);
     else callback(null, list[0]!.address, list[0]!.family);
@@ -93,7 +93,7 @@ export function assertAllowedUrl(input: string, allowPrivate = allowPrivateNetwo
   if (url.username || url.password) throw new HttpError(400, 'URLs with embedded credentials are not supported');
   const host = url.hostname.replace(/^\[|\]$/g, '');
   if (!allowPrivate && net.isIP(host) && isBlockedAddress(host)) {
-    throw new HttpError(403, 'Refusing to connect to a private or reserved address');
+    throw new HttpError(403, 'Refusing to connect to a private or reserved address. Set ALLOW_PRIVATE_NETWORK=1 to allow feeds on your own network.');
   }
   return url;
 }

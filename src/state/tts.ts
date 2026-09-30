@@ -70,6 +70,9 @@ export const useTts = create<TtsState>((set, get) => {
       get().stop();
       set({ status: 'loading', articleId: article.id, title: article.title });
       try {
+        // Never talk over a podcast. (Imported lazily because the player already imports this store.)
+        const { usePlayer } = await import('./player');
+        if (usePlayer.getState().playing) usePlayer.getState().toggle();
         await get().init();
         let { extracted } = article;
         if (!extracted && article.link) {
