@@ -9,7 +9,12 @@ export default defineConfig({
     port: 5173,
     proxy: { '/api': apiTarget },
   },
-  build: { outDir: 'dist', sourcemap: true },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    // The entry chunk is ~170 kB gzipped (React, Dexie, the Reader); Lightning and Nostr code loads on demand.
+    chunkSizeWarningLimit: 600,
+  },
   test: {
     include: ['shared/**/*.test.ts', 'server/**/*.test.ts', 'src/**/*.test.{ts,tsx}'],
     environment: 'node',
