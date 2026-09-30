@@ -4,6 +4,17 @@ A local-first **RSS reader** and **podcast player** with **Lightning (Alby) paym
 
 Your subscriptions, reading state and playback progress live in your own browser. A small Node server, running on your machine, does the things a browser can't: fetching feeds (no CORS limits), extracting article text, and transcribing audio.
 
+## Quick install (Debian / Ubuntu)
+
+```bash
+git clone https://github.com/derikatwork/BitPodRSS.git
+cd BitPodRSS
+./scripts/install.sh     # installs git/curl/ffmpeg and Node 22 if missing, then npm install + build
+npm run serve            # open http://localhost:8787
+```
+
+Run `./scripts/install.sh --help` for options. Other systems, or prefer doing it by hand? See the [full walkthrough](#installation-and-setup-walkthrough).
+
 ## Features
 
 ### RSS reader
