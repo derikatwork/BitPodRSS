@@ -231,6 +231,8 @@ export interface TranscribeJobState {
   /** Seconds of audio processed so far. */
   processedSeconds: number;
   model: string;
+  /** Human-readable step, e.g. "Downloading model (42%)". */
+  message?: string;
   error?: string;
   /** Segments starting at index `since` (see the `since` query parameter). */
   segments: TranscriptSegment[];
