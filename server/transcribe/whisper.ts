@@ -3,7 +3,15 @@ import { findModel } from './models';
 import type { AsrChunk, AsrFn } from './pipeline';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type Transformers = typeof import('@huggingface/transformers');
+
+/**
+ * The small slice of transformers.js we use. Declared here rather than taken from the package's own types so
+ * that this project type-checks and builds even when the optional package is not installed.
+ */
+interface Transformers {
+  env: { cacheDir: string };
+  pipeline: (task: string, model: string, options: Record<string, unknown>) => Promise<any>;
+}
 
 let transformers: Promise<Transformers> | undefined;
 
@@ -12,7 +20,9 @@ let transformers: Promise<Transformers> | undefined;
  * binaries), so the rest of the app must keep working when it is missing or fails to load.
  */
 export function loadTransformers(): Promise<Transformers> {
-  transformers ??= import('@huggingface/transformers');
+  // A variable specifier keeps the compiler and bundlers from requiring the package to be present.
+  const specifier = '@huggingface/transformers';
+  transformers ??= import(specifier) as Promise<Transformers>;
   return transformers;
 }
 
@@ -57,15 +67,13 @@ async function create(modelId: string, opts: LoadOptions): Promise<Loaded> {
   const progress_callback = (p: any): void => {
     if (p?.status === 'progress_total' && typeof p.progress === 'number') opts.onMessage?.(`Downloading speech model… ${Math.round(p.progress)}%`);
   };
-  const pipeline = tf.pipeline as unknown as (task: string, model: string, options: Record<string, unknown>) => Promise<any>;
-
   opts.onMessage?.('Loading speech model…');
   let asr: any;
   try {
     // 8-bit quantised weights: a fraction of the download and noticeably faster on CPU.
-    asr = await pipeline('automatic-speech-recognition', modelId, { dtype: 'q8', progress_callback });
+    asr = await tf.pipeline('automatic-speech-recognition', modelId, { dtype: 'q8', progress_callback });
   } catch {
-    asr = await pipeline('automatic-speech-recognition', modelId, { progress_callback });
+    asr = await tf.pipeline('automatic-speech-recognition', modelId, { progress_callback });
   }
 
   return {

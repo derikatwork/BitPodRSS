@@ -4,6 +4,7 @@ import { api } from '../api';
 import { db, type Article } from '../db';
 import { summarize } from '../../shared/summarize';
 import { Speaker, htmlToPlainText, loadVoices, speechSupported } from '../lib/tts';
+import { claimAudio, registerAudio } from './audioFocus';
 import { errorMessage, toast } from './toasts';
 import { useSettings } from './settings';
 
@@ -46,6 +47,8 @@ export const useTts = create<TtsState>((set, get) => {
       },
     }));
 
+  registerAudio('speech', () => get().stop());
+
   // Changing voice or speed in Settings applies immediately, even mid-article.
   useSettings.subscribe((s, prev) => {
     if (s.ttsRate !== prev.ttsRate || s.ttsVoiceURI !== prev.ttsVoiceURI || s.ttsPreferLocal !== prev.ttsPreferLocal) {
@@ -70,9 +73,7 @@ export const useTts = create<TtsState>((set, get) => {
       get().stop();
       set({ status: 'loading', articleId: article.id, title: article.title });
       try {
-        // Never talk over a podcast. (Imported lazily because the player already imports this store.)
-        const { usePlayer } = await import('./player');
-        if (usePlayer.getState().playing) usePlayer.getState().toggle();
+        claimAudio('speech'); // never talk over a podcast
         await get().init();
         let { extracted } = article;
         if (!extracted && article.link) {

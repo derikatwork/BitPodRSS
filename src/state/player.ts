@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { db } from '../db';
 import { useSettings } from './settings';
+import { claimAudio, registerAudio } from './audioFocus';
 import { errorMessage, toast } from './toasts';
-import { useTts } from './tts';
 
 interface PlayerState {
   episodeId?: number;
@@ -102,6 +102,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
     });
   }
 
+  registerAudio('podcast', () => {
+    if (audio && !audio.paused) audio.pause();
+  });
+
   const updateMediaSession = (): void => {
     if (!('mediaSession' in navigator)) return;
     const { title, podcastTitle, imageUrl } = get();
@@ -136,7 +140,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         if (!episode) throw new Error('That episode no longer exists.');
         const podcast = await db.podcasts.get(episode.podcastId);
 
-        useTts.getState().stop(); // never talk over a podcast
+        claimAudio('podcast'); // never talk over a podcast
         await savePosition();
 
         const resume = opts.startAt ?? (episode.position > 5 && (!episode.duration || episode.position < episode.duration - 10) ? episode.position : 0);
@@ -171,8 +175,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
     toggle() {
       if (!get().episodeId) return;
       const el = a();
-      if (el.paused) void el.play().catch((e: unknown) => toast.error(errorMessage(e)));
-      else el.pause();
+      if (el.paused) {
+        claimAudio('podcast');
+        void el.play().catch((e: unknown) => toast.error(errorMessage(e)));
+      } else el.pause();
     },
 
     seek(seconds) {

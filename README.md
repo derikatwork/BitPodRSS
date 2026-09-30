@@ -45,7 +45,7 @@ npm run dev
 Transcription runs on the machine that runs the server and needs two things:
 
 1. **ffmpeg** on your `PATH` (`brew install ffmpeg`, `sudo apt install ffmpeg`, …) or set `FFMPEG_PATH`.
-2. The optional package **`@huggingface/transformers`**. It is listed as an *optional dependency*, so `npm install` installs it when it can. It downloads native ONNX runtime binaries, so if your network blocked that, run `npm install @huggingface/transformers` again later.
+2. The optional package **`@huggingface/transformers`**, installed by `npm install` as an *optional dependency* (the project's `.npmrc` skips the GPU-only downloads that otherwise fail on restricted networks; the CPU runtime is bundled). If it isn't installed the rest of the app works normally.
 
 The Whisper model (40–250 MB depending on the size you pick) is downloaded once on first use into `./data/models`, after which transcription works offline. The app tells you in **Settings → Local transcription** whether both pieces are available. Everything else works without them.
 
